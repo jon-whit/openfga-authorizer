@@ -42,25 +42,36 @@ func (r *RoleReconciler) Reconcile(
 	roleNamespace := role.GetNamespace()
 	roleName := role.GetName()
 
+	mappedObject := fmt.Sprintf("k8s_role:namespace/%s/roles/%s", roleNamespace, roleName)
+
 	writes := []openfgasdk.ClientTupleKey{
 		{
-			Object:   fmt.Sprintf("k8s_role:namespace/%s/roles/%s", roleNamespace, roleName),
+			Object:   mappedObject,
 			Relation: "contains",
 			User:     fmt.Sprintf("k8s_namespace:%s", roleNamespace),
 		},
 	}
 
 	for _, rule := range role.Rules {
-		_ = rule
-		//apiGroup := rule.APIGroups[0]
-		//resourceName := rule.ResourceNames[0]
-		//resources := rule.Resources[0]
-		//verbs := rule.Verbs[0]
+		for _, verb := range rule.Verbs {
+			for _, apiGroup := range rule.APIGroups {
+				for _, resourceName := range rule.ResourceNames {
+					tuple := openfgasdk.ClientTupleKey{
+						Object:   fmt.Sprintf("k8s_resource:%s/namespaces/%s/%s", apiGroup, roleNamespace, resourceName),
+						Relation: verb,
+						User:     fmt.Sprintf("%s#assignee", mappedObject),
+					}
 
-		// _ = rule.APIGroups
-		// _ = rule.ResourceNames
-		// _ = rule.Resources
-		// _ = rule.Verbs
+					tupleStr := fmt.Sprintf("%s#%s@%s", tuple.GetObject(), tuple.GetRelation(), tuple.GetUser())
+
+					logger.Info("adding tuple", "tupleKey", tupleStr)
+
+					writes = append(writes, tuple)
+				}
+			}
+		}
+
+		//resources := rule.Resources[0]
 		// _ = rule.NonResourceURLs
 	}
 

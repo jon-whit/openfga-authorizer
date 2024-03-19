@@ -10,13 +10,10 @@ import (
 	"github.com/jon-whit/openfga-authorizer/internal/authorizer"
 	webhookauthz "github.com/jon-whit/openfga-authorizer/internal/authorizer/webhook"
 	"github.com/jon-whit/openfga-authorizer/internal/config"
-	"github.com/jon-whit/openfga-authorizer/internal/controllers/clusterrolebindingsyncer"
-	"github.com/jon-whit/openfga-authorizer/internal/controllers/clusterrolesyncer"
-	"github.com/jon-whit/openfga-authorizer/internal/controllers/rolebindingsyncer"
-	"github.com/jon-whit/openfga-authorizer/internal/controllers/rolesyncer"
-	"github.com/jon-whit/openfga-authorizer/internal/nodeauth"
-	"github.com/jon-whit/openfga-authorizer/internal/rbacconversion"
-	"github.com/jon-whit/openfga-authorizer/internal/zanzibar"
+	"github.com/jon-whit/openfga-authorizer/internal/controllers/clusterrolebindingctrl"
+	"github.com/jon-whit/openfga-authorizer/internal/controllers/clusterrolectrl"
+	"github.com/jon-whit/openfga-authorizer/internal/controllers/rolebindingctrl"
+	"github.com/jon-whit/openfga-authorizer/internal/controllers/rolectrl"
 	openfgasdk "github.com/openfga/go-sdk/client"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -102,50 +99,37 @@ func main() {
 		log.Fatalf("failed to initialize kubernetes manager: %v", err)
 	}
 
-	var fgaStore zanzibar.TupleStore
-
-	as := rbacconversion.GetSchema()
-	as.Types = append(as.Types, nodeauth.GetSchema().Types...)
-
-	converter := &rbacconversion.GenericConverter{}
-
-	crReconciler := &clusterrolesyncer.ClusterRoleReconciler{
+	crReconciler := &clusterrolectrl.ClusterRoleReconciler{
 		Client:        k8smanager.GetClient(),
 		Scheme:        k8smanager.GetScheme(),
-		RBACConverter: converter,
-		Zanzibar:      fgaStore,
-		TypeRelation:  &as.Types[3],
+		OpenFGAClient: openfgaClient,
 	}
 	if err := crReconciler.SetupWithManager(k8smanager); err != nil {
 		log.Fatalf("failed to register ClusterRoleReconciler: %v", err)
 	}
 
-	crbReconciler := &clusterrolebindingsyncer.ClusterRoleBindingReconciler{
+	crbReconciler := &clusterrolebindingctrl.ClusterRoleBindingReconciler{
 		Client:        k8smanager.GetClient(),
 		Scheme:        k8smanager.GetScheme(),
-		RBACConverter: converter,
-		Zanzibar:      fgaStore,
-		TypeRelation:  &as.Types[0],
+		OpenFGAClient: openfgaClient,
 	}
 	if err := crbReconciler.SetupWithManager(k8smanager); err != nil {
 		log.Fatalf("failed to register ClusterRoleBindingReconciler: %v", err)
 	}
 
-	roleReconciler := &rolesyncer.RoleReconciler{
-		Client:       k8smanager.GetClient(),
-		Scheme:       k8smanager.GetScheme(),
-		Zanzibar:     fgaStore,
-		TypeRelation: &as.Types[2],
+	roleReconciler := &rolectrl.RoleReconciler{
+		Client:        k8smanager.GetClient(),
+		Scheme:        k8smanager.GetScheme(),
+		OpenFGAClient: openfgaClient,
 	}
 	if err := roleReconciler.SetupWithManager(k8smanager); err != nil {
 		log.Fatalf("failed to register RoleReconciler: %v", err)
 	}
 
-	roleBindingReconciler := &rolebindingsyncer.RoleBindingReconciler{
-		Client:       k8smanager.GetClient(),
-		Scheme:       k8smanager.GetScheme(),
-		Zanzibar:     fgaStore,
-		TypeRelation: &as.Types[1],
+	roleBindingReconciler := &rolebindingctrl.RoleBindingReconciler{
+		Client:        k8smanager.GetClient(),
+		Scheme:        k8smanager.GetScheme(),
+		OpenFGAClient: openfgaClient,
 	}
 	if err := roleBindingReconciler.SetupWithManager(k8smanager); err != nil {
 		log.Fatalf("failed to register RoleBindingReconciler: %v", err)

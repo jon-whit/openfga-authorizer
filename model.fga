@@ -1,0 +1,52 @@
+model
+  schema 1.1
+
+type user
+
+type role
+  relations
+    define member: [user]
+
+type permission
+  relations
+    define has_permission: [role#member, user]
+
+type org
+  relations
+    define member: [user]
+
+type group
+  relations
+    define member: [user, group#member, role#member]
+
+type k8s_namespace
+  relations
+    define operates_in: [user, group#member]
+
+type k8s_resource
+  relations
+    define create: [user, k8s_role#assignee, k8s_clusterrole#assignee]
+    define get: [user, k8s_role#assignee, k8s_clusterrole#assignee]
+    define list: [user, k8s_role#assignee, k8s_clusterrole#assignee]
+    define watch: [user, k8s_role#assignee, k8s_clusterrole#assignee]
+    define update: [user, k8s_role#assignee, k8s_clusterrole#assignee]
+    define patch: [user, k8s_role#assignee, k8s_clusterrole#assignee]
+    define delete: [user, k8s_role#assignee, k8s_clusterrole#assignee]
+
+type k8s_role
+  relations
+    define assignee: namespaced_assignee and operates_in from contains
+    define contains: [k8s_namespace]
+    define namespaced_assignee: [k8s_rolebinding#namespaced_assignee]
+
+type k8s_rolebinding
+  relations
+    define namespaced_assignee: [user, group#member]
+
+type k8s_clusterrole
+  relations
+    define assignee: [k8s_clusterrolebinding#assignee]
+
+type k8s_clusterrolebinding
+  relations
+    define assignee: [user, group#member]
