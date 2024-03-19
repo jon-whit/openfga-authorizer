@@ -2,9 +2,9 @@ package rolectrl
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
+	"github.com/jon-whit/openfga-authorizer/internal/resourcemapper"
 	openfgasdk "github.com/openfga/go-sdk/client"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,41 +38,17 @@ func (r *RoleReconciler) Reconcile(
 
 	logger.Info("role mutated", "role", role)
 
-	// todo: reconile the OpenFGA relationship tuples based on the role
-	roleNamespace := role.GetNamespace()
-	roleName := role.GetName()
+	// todo: include deletions
 
-	mappedObject := fmt.Sprintf("k8s_role:namespace/%s/roles/%s", roleNamespace, roleName)
+	relationshipTuples := resourcemapper.RoleToRelationshipTuples(role)
 
-	writes := []openfgasdk.ClientTupleKey{
-		{
-			Object:   mappedObject,
-			Relation: "contains",
-			User:     fmt.Sprintf("k8s_namespace:%s", roleNamespace),
-		},
-	}
-
-	for _, rule := range role.Rules {
-		for _, verb := range rule.Verbs {
-			for _, apiGroup := range rule.APIGroups {
-				for _, resourceName := range rule.ResourceNames {
-					tuple := openfgasdk.ClientTupleKey{
-						Object:   fmt.Sprintf("k8s_resource:%s/namespaces/%s/%s", apiGroup, roleNamespace, resourceName),
-						Relation: verb,
-						User:     fmt.Sprintf("%s#assignee", mappedObject),
-					}
-
-					tupleStr := fmt.Sprintf("%s#%s@%s", tuple.GetObject(), tuple.GetRelation(), tuple.GetUser())
-
-					logger.Info("adding tuple", "tupleKey", tupleStr)
-
-					writes = append(writes, tuple)
-				}
-			}
-		}
-
-		//resources := rule.Resources[0]
-		// _ = rule.NonResourceURLs
+	var writes []openfgasdk.ClientTupleKey
+	for _, tuple := range relationshipTuples {
+		writes = append(writes, openfgasdk.ClientTupleKey{
+			Object:   tuple.String(),
+			Relation: tuple.Relation,
+			User:     tuple.Subject.String(),
+		})
 	}
 
 	_, err := r.OpenFGAClient.

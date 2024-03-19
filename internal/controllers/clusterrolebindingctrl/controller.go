@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/jon-whit/openfga-authorizer/internal/resourcemapper"
 	openfgasdk "github.com/openfga/go-sdk/client"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,9 +35,25 @@ func (r *ClusterRoleBindingReconciler) Reconcile(ctx context.Context, req reconc
 
 	logger.Info("clusterrolebinding mutated", "clusterrolebinding", clusterRoleBinding)
 
-	_ = clusterRoleBinding
+	relationshipTuples := resourcemapper.ClusterRoleBindingToRelationshipTuples(clusterRoleBinding)
 
-	return ctrl.Result{}, nil
+	var writes []openfgasdk.ClientTupleKey
+	for _, tuple := range relationshipTuples {
+		writes = append(writes, openfgasdk.ClientTupleKey{
+			Object:   tuple.String(),
+			Relation: tuple.Relation,
+			User:     tuple.Subject.String(),
+		})
+	}
+
+	_, err := r.OpenFGAClient.
+		Write(ctx).
+		Body(openfgasdk.ClientWriteRequest{
+			Writes: writes,
+		}).
+		Execute()
+
+	return ctrl.Result{}, err
 }
 
 // SetupWithManager sets up the controller with the Manager.

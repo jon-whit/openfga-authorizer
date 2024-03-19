@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/jon-whit/openfga-authorizer/internal/resourcemapper"
 	openfgasdk "github.com/openfga/go-sdk/client"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,19 +35,15 @@ func (r *ClusterRoleReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	logger.Info("clusterrole mutated", "clusterrole", clusterRole)
 
-	clusterRoleNamespace := clusterRole.GetNamespace()
-	clusterRoleName := clusterRole.GetName()
+	relationshipTuples := resourcemapper.ClusterRoleToRelationshipTuples(clusterRole)
 
 	var writes []openfgasdk.ClientTupleKey
-
-	_ = clusterRoleName
-	_ = clusterRoleNamespace
-
-	for _, rule := range clusterRole.Rules {
-		_ = rule.APIGroups
-		_ = rule.Resources
-		_ = rule.ResourceNames
-		_ = rule.Verbs
+	for _, tuple := range relationshipTuples {
+		writes = append(writes, openfgasdk.ClientTupleKey{
+			Object:   tuple.String(),
+			Relation: tuple.Relation,
+			User:     tuple.Subject.String(),
+		})
 	}
 
 	_, err := r.OpenFGAClient.

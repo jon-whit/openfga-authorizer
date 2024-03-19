@@ -1,6 +1,4 @@
-// Package rebacmapper provides mapping utilities to map Kubernetes
-// resources to ReBAC mappings.
-package rebacmapper
+package rebac
 
 import (
 	"fmt"
@@ -10,6 +8,10 @@ type RelationshipTuple struct {
 	Object   Object
 	Relation string
 	Subject  isSubjectRef
+}
+
+func (r RelationshipTuple) String() string {
+	return fmt.Sprintf("%s#%s@%s", r.Object.String(), r.Relation, r.Subject.String())
 }
 
 type isSubjectRef interface {

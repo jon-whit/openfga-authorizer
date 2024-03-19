@@ -2,9 +2,9 @@ package rolebindingctrl
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
+	"github.com/jon-whit/openfga-authorizer/internal/resourcemapper"
 	openfgasdk "github.com/openfga/go-sdk/client"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,27 +38,15 @@ func (r *RoleBindingReconciler) Reconcile(
 
 	logger.Info("rolebinding mutated", "rolebinding", roleBinding)
 
-	roleBindingNamespace := roleBinding.GetNamespace()
-	roleBindingName := roleBinding.GetName()
+	relationshipTuples := resourcemapper.RoleBindingToRelationshipTuples(roleBinding)
 
-	roleRef := roleBinding.RoleRef
-
-	writes := []openfgasdk.ClientTupleKey{
-		{
-			Object:   fmt.Sprintf("k8s_role:namespace/%s/roles/%s", roleBindingNamespace, roleRef.Name),
-			Relation: "namespaced_assignee",
-			User:     fmt.Sprintf("k8s_rolebinding:namespace/%s/rolebindings/%s#namespaced_assignee", roleBindingNamespace, roleBindingName),
-		},
-	}
-
-	for _, subject := range roleBinding.Subjects {
-		if subject.Kind == rbacv1.GroupKind {
-			writes = append(writes, openfgasdk.ClientTupleKey{
-				Object:   fmt.Sprintf("k8s_rolebinding:namespace/%s/rolebindings/%s", roleBindingNamespace, roleBindingName),
-				Relation: "namespaced_assignee",
-				User:     fmt.Sprintf("group:%s#member", subject.Name),
-			})
-		}
+	var writes []openfgasdk.ClientTupleKey
+	for _, tuple := range relationshipTuples {
+		writes = append(writes, openfgasdk.ClientTupleKey{
+			Object:   tuple.Object.String(),
+			Relation: tuple.Relation,
+			User:     tuple.Subject.String(),
+		})
 	}
 
 	_, err := r.OpenFGAClient.
