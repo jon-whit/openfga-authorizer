@@ -1,0 +1,56 @@
+version: "3.9"
+services:
+  etcd:
+    image: "registry.k8s.io/etcd:3.5.9-0"
+    command: 
+      - etcd
+      - '--data-dir=/data'
+      - '--name=etcd1'
+      - '--initial-advertise-peer-urls=http://etcd:2380'
+      - '--listen-peer-urls=http://0.0.0.0:2380'
+      - '--advertise-client-urls=http://etcd:2379'
+      - '--listen-client-urls=http://0.0.0.0:2379'      
+      - '--initial-cluster=etcd1=http://etcd:2380'
+
+  api:
+    image: "registry.k8s.io/kube-apiserver:v1.28.3"
+    depends_on:
+      - etcd
+    ports:
+      - "127.0.0.1:6443:6443"
+    command: 
+      - kube-apiserver
+      - '--etcd-servers=http://etcd:2379'
+      - '--token-auth-file=/config/static-tokens.txt'
+      - '--service-account-issuer=https://default.local'
+      - '--service-account-key-file=/var/run/kubernetes/apiserver.crt'
+      - '--service-account-signing-key-file=/var/run/kubernetes/apiserver.key'
+      - '--authorization-webhook-config-file=/config/webhook-authz.yaml'
+      - '--authorization-mode=Webhook'
+      - '--authorization-webhook-cache-authorized-ttl=0s'
+      - '--authorization-webhook-cache-unauthorized-ttl=0s'
+      - '--authorization-webhook-version=v1'
+    volumes:
+      - ./certs:/certs
+      - ./.config:/config
+
+  openfga:
+    image: "openfga/openfga:v1.5.0"
+    command:
+      - run
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+
+  authorizer:
+    depends_on:
+      - openfga
+    image: "jon-whit/openfga-authorizer:latest"
+    command:
+      - --kubeconfig=/config/authorizer-kubeconfig.yaml
+      - --config=/config/authorizer-config.yaml
+    ports:
+      - "9443:9443"
+    volumes:
+      - ./certs:/certs
+      - ./.config:/config
