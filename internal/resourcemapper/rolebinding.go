@@ -43,7 +43,7 @@ func RoleBindingToRelationshipTuples(roleBinding rbacv1.RoleBinding) []rebac.Rel
 						Type: "group",
 						ID:   subject.Name,
 					},
-					Relation: "member",
+					Relation: "assignee",
 				},
 			})
 		}

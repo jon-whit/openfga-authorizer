@@ -27,11 +27,15 @@ func RoleToRelationshipTuples(role rbacv1.Role) []rebac.RelationshipTuple {
 	for _, rule := range role.Rules {
 		for _, verb := range rule.Verbs {
 			for _, apiGroup := range rule.APIGroups {
-				for _, resourceName := range rule.ResourceNames {
+				for _, resource := range rule.Resources {
+					if apiGroup == "" {
+						apiGroup = "/api/v1"
+					}
+
 					tuple := rebac.RelationshipTuple{
 						Object: rebac.Object{
 							Type: "k8s_resource",
-							ID:   fmt.Sprintf("%s/namespaces/%s/%s", apiGroup, roleNamespace, resourceName),
+							ID:   fmt.Sprintf("%s/namespaces/%s/%s", apiGroup, roleNamespace, resource),
 						},
 						Relation: verb,
 						Subject: rebac.SubjectSet{

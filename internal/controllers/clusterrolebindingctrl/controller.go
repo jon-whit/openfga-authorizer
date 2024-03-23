@@ -40,7 +40,7 @@ func (r *ClusterRoleBindingReconciler) Reconcile(ctx context.Context, req reconc
 	var writes []openfgasdk.ClientTupleKey
 	for _, tuple := range relationshipTuples {
 		writes = append(writes, openfgasdk.ClientTupleKey{
-			Object:   tuple.String(),
+			Object:   tuple.Object.String(),
 			Relation: tuple.Relation,
 			User:     tuple.Subject.String(),
 		})

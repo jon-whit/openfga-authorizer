@@ -17,6 +17,10 @@ func ClusterRoleToRelationshipTuples(clusterRole rbacv1.ClusterRole) []rebac.Rel
 		for _, verb := range rule.Verbs {
 			for _, apiGroup := range rule.APIGroups {
 				for _, resourceName := range rule.ResourceNames {
+					if apiGroup == "" {
+						apiGroup = "/api/v1"
+					}
+
 					tuple := rebac.RelationshipTuple{
 						Object: rebac.Object{
 							Type: "k8s_resource",

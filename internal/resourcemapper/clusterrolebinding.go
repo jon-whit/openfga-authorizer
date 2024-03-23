@@ -41,7 +41,7 @@ func ClusterRoleBindingToRelationshipTuples(crBinding rbacv1.ClusterRoleBinding)
 						Type: "group",
 						ID:   subject.Name,
 					},
-					Relation: "member",
+					Relation: "assignee",
 				},
 			})
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/jon-whit/openfga-authorizer/internal/resourcemapper"
 	openfgasdk "github.com/openfga/go-sdk/client"
@@ -44,6 +45,9 @@ func (o *OpenFGAAuthorizer) Authorize(
 					Relation: "operates_in",
 					User:     user,
 				},
+			},
+			Context: &map[string]interface{}{
+				"current_timestamp": time.Now().UTC().Format(time.RFC3339),
 			},
 		}).
 		Execute()

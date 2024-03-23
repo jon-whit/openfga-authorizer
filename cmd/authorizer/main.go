@@ -21,6 +21,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -35,6 +36,8 @@ func init() {
 }
 
 func main() {
+	ctrl.SetLogger(zap.New())
+
 	var configPath string
 	flag.StringVar(&configPath, "config", "", "the absolute file path to load the OpenFGA Authorizer config")
 

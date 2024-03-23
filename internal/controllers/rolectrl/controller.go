@@ -45,11 +45,13 @@ func (r *RoleReconciler) Reconcile(
 	var writes []openfgasdk.ClientTupleKey
 	for _, tuple := range relationshipTuples {
 		writes = append(writes, openfgasdk.ClientTupleKey{
-			Object:   tuple.String(),
+			Object:   tuple.Object.String(),
 			Relation: tuple.Relation,
 			User:     tuple.Subject.String(),
 		})
 	}
+
+	logger.Info("writing FGA relationship tuples", "writes", writes)
 
 	_, err := r.OpenFGAClient.
 		Write(ctx).

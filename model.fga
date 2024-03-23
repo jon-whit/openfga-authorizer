@@ -1,37 +1,33 @@
 model
   schema 1.1
 
+# Managed by Keycloak
 type user
-
-type role
-  relations
-    define member: [user]
-
-type permission
-  relations
-    define has_permission: [role#member, user]
-
-type org
-  relations
-    define member: [user]
 
 type group
   relations
-    define member: [user, group#member, role#member]
+    define assignee: [user, user with temporal_grant]
 
+type role
+  relations
+    define assignee: [user] or assignee from parent or assignee from parent_group
+    define parent: [role]
+    define parent_group: [group]
+
+# Managed by Kubernetes OpenFGA Webhook Authorizer
 type k8s_namespace
   relations
-    define operates_in: [user, group#member]
+    define operates_in: [user, group#assignee]
 
 type k8s_resource
   relations
-    define create: [user, k8s_role#assignee, k8s_clusterrole#assignee]
-    define get: [user, k8s_role#assignee, k8s_clusterrole#assignee]
-    define list: [user, k8s_role#assignee, k8s_clusterrole#assignee]
-    define watch: [user, k8s_role#assignee, k8s_clusterrole#assignee]
-    define update: [user, k8s_role#assignee, k8s_clusterrole#assignee]
-    define patch: [user, k8s_role#assignee, k8s_clusterrole#assignee]
-    define delete: [user, k8s_role#assignee, k8s_clusterrole#assignee]
+    define create: [user, k8s_role#assignee]
+    define get: [user, k8s_role#assignee]
+    define list: [user, k8s_role#assignee]
+    define watch: [user, k8s_role#assignee]
+    define update: [user, k8s_role#assignee]
+    define patch: [user, k8s_role#assignee]
+    define delete: [user, k8s_role#assignee]
 
 type k8s_role
   relations
@@ -41,7 +37,7 @@ type k8s_role
 
 type k8s_rolebinding
   relations
-    define namespaced_assignee: [user, group#member]
+    define namespaced_assignee: [user, group#assignee]
 
 type k8s_clusterrole
   relations
@@ -49,4 +45,8 @@ type k8s_clusterrole
 
 type k8s_clusterrolebinding
   relations
-    define assignee: [user, group#member]
+    define assignee: [user, group#assignee]
+
+condition temporal_grant(current_timestamp: timestamp, grant_timestamp: timestamp, grant_duration: duration) {
+  current_timestamp <= grant_timestamp+grant_duration
+}
