@@ -41,29 +41,23 @@ kubectl config use-context admin-user
 * APIVersion
 
 ### API Resources (top-level)
-* Create a new API object (create): POST /apis/<apiGroup>/<apiVersion>/<resource>
-* List API objects (list): GET /apis/<apiGroup>/<apiVersion>/<resource>
-* Watch API objects (watch): GET /apis/<apiGroup>/<apiVersion>/<resource>?watch=1
-* Get an API object with a given name (get): GET /apis/<apiGroup>/<apiVersion>/<resource>/<name>
-* Update an API object with a given name (update): PUT /apis/<apiGroup>/<apiVersion>/<resource>/<name>
-* Patch an API object with a given name (patch): PATCH /apis/<apiGroup>/<apiVersion>/<resource>/<name>
-* Delete an API object with a given name (delete): DELETE /apis/<apiGroup>/<apiVersion>/<resource>/<name>
+* Create a new API object (create): POST `/apis/<apiGroup>/<apiVersion>/<resource>`
+* List API objects (list): GET `/apis/<apiGroup>/<apiVersion>/<resource>`
+* Watch API objects (watch): GET `/apis/<apiGroup>/<apiVersion>/<resource>?watch=1`
+* Get an API object with a given name (get): GET `/apis/<apiGroup>/<apiVersion>/<resource>/<name>`
+* Update an API object with a given name (update): PUT `/apis/<apiGroup>/<apiVersion>/<resource>/<name>`
+* Patch an API object with a given name (patch): PATCH `/apis/<apiGroup>/<apiVersion>/<resource>/<name>`
+* Delete an API object with a given name (delete): DELETE `/apis/<apiGroup>/<apiVersion>/<resource>/<name>`
 
 ### Namespaced Resources
 Same rules for the [API Resources](#api-resources-top-level) apply, but with a subpath scoped to the namespace. For example,
 
 `/apis/<apiGroup>/<apiVersion>/namespaces/<namespace>/<resource>`
 
-## Mapping Kubernetes ResourceAttributes to FGA Relationship Tuples
-(object, relation, user)
-
-(resource:<path>, <verb>, <user>)
-
 * Get Deployment 'foo' in Namespace 'bar' - GET /apps/v1/namespaces/bar/deployments/foo
 
   `Check(resource:/apps/v1/namespaces/bar/deployments/foo, get, user:jon)`
 
-## Helpful Commands
 ### Check /authorize endpoint with TLS
 ```shell
 curl -v --cert certs/server.crt --key certs/server.key --cacert certs/ca.crt -H 'Content-Type: application/json' https://localhost:9443/authorize 
